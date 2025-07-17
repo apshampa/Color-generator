@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline Color Palette Generator - Revanth</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --background: #ececec;
+            --foreground: #161718;
+            --shadow-border: 0px 0px 0px 1px inset rgba(0,0,0,0.12);
+            --com-box-shadow: 0px 1px 0px hsl(0,0%,100%),inset 0px 2px 8px rgba(0,0,0,.1),inset 0px 1px 0px rgba(0,0,0,.1),inset 0px -1px 0px 1px rgba(0,0,0,.05);
+            --thumb-bg: linear-gradient(180deg,#f4f4f4,#e2e2e2);
+            --thumb-shadow: rgba(255,255,255,0.5) 4px 4px 8px 2px inset,rgba(0,0,0,0.06) -4px -4px 8px 2px inset,rgba(0,0,0,0.196) 0.592779px 0.592779px 1.50897px -0.8px,rgba(0,0,0,0.19) 1.61429px 1.61429px 4.10932px -1.6px,rgba(0,0,0,0.173) 3.5444px 3.5444px 9.02258px -2.4px,rgba(0,0,0,0.14) 7.86777px 7.86777px 20.0281px -3.2px,rgba(0,0,0,0.05) 20px 20px 50.9117px -4px;
+            --in-shadow-gray: inset 0 1px 2px #00000026, 0 1px 0 0 #ffffff40;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+        }
+        .main-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .controls-outer-container {
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 20px;
+            padding: 32px 20px;
+            background-color: #fff;
+        }
+        .controls-grid {
+            display: flex;
+            justify-content: space-between;
+            align-items: stretch;
+            gap: 8px;
+        }
+        .controls-column {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            flex: 1;
+            padding: 0 24px;
+        }
+        .divider-line {
+            width: 1px;
+            background-color: rgba(0,0,0,0.1);
+            align-self: stretch;
+        }
+        .label {
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 2.5px;
+            color: #333;
+            opacity: 0.6;
+        }
+        .custom-select-wrapper {
+            position: relative;
+        }
+        .custom-select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            font-size: 28px;
+            font-weight: 500;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+        .custom-select:focus {
+            outline: none;
+        }
+        .color-model-select-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+        }
+        .color-model-select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: transparent;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            padding-right: 1.5rem; 
+        }
+        .color-model-select:focus {
+            outline: none;
+        }
+        .select-arrow {
+            pointer-events: none;
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .shade-box {
+            cursor: pointer;
+            width: 100px;
+            height: 100px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 12px;
+            flex-direction: column;
+            border-radius: 12px;
+            position: relative;
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            box-shadow: var(--thumb-shadow);
+        }
+        .shade-box:hover {
+            transform: translateY(-4px);
+        }
+        .shade-name {
+            font-weight: 800;
+            font-size: 12px;
+            margin-bottom: 4px;
+            opacity: 0.5;
+        }
+        .shade-value {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .dot {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAIRlWElmTU0AKgAAAAgABQESAAMAAAABAAEAAAEaAAUAAAABAAAASgEbAAUAAAABAAAAUgEoAAMAAAABAAIAAAITAAMAAAABAAEAAIdpAAQAAAABAAAAWgAAAAAAAACQAAAAAQAAAJAAAAABAAOShgAHAAAAEgAAAHgAAAAAAABgAAAAAQAAAGAAAAABAAAAAAAAAAAAAQAAAZAAAAAFAAAAAQAAAZoAAAEAAAAAARIAAAAAAQAAAYgAAAARAAAAAQAAAYwAAAAeAAAAAQAAAaAAAAAFAAAAAQAAAaoAAAEAAAEAAAAAAAAAAAAAAAAAAZAAAAAFAAAAAQAAAbQAAAEAAAAAARIAAAAAAQAAAbgAAAARAAAAAQAAAbwAAAAeAAAAAQAAAcAAAAAFAAAAAQAAAcYAAAEAAAEAAAAAAAAACgAAAZAAAAAFAAAAAQAAAdQAAAEAAAAAARIAAAAAAQAAAdgAAAARAAAAAQAAAdwAAAAeAAAAAQAAAeAAAAAFAAAAAQAAeYAAAEAAAEAAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAQABADASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAf/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAABQf/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCDwBSb0ClQYIKDBQYKDBSb0G9BvQb0G9BvQb0G9CvQf/Z') center center/cover no-repeat;
+        }
+        input[type="color"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: transparent;
+            border: none;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
+        input[type="color"]::-moz-color-swatch { border-radius: 50%; border: 1px solid rgba(0,0,0,0.1); }
+        .tab-btn.active {
+            background-color: #3B82F6;
+            color: white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .code-block { background-color: #f5f2f0; border-radius: 8px; position: relative; }
+        .code-block pre { white-space: pre-wrap; word-break: break-all; }
+        .copy-feedback {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            z-index: 20;
+        }
+        input[type=range] {
+            -webkit-appearance: none; appearance: none;
+            width: 100%; height: 10px; border-radius: 5px;
+            background: #e0e1e4;
+            box-shadow: var(--in-shadow-gray);
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; appearance: none;
+            width: 22px; height: 22px; border-radius: 50%;
+            background: var(--thumb-bg);
+            cursor: grab;
+            box-shadow: var(--thumb-shadow);
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: var(--thumb-bg);
+            cursor: grab;
+            box-shadow: var(--thumb-shadow);
+        }
+        .shade-button {
+            transition: transform 0.1s ease-out;
+        }
+        .shade-button:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <header class="main-container px-4 py-8 flex justify-between items-center">
+        <a href="#" class="flex items-center gap-2">
+            <span class="text-xl font-bold">Color generator by Revanth</span>
+        </a>
+    </header>
+
+    <div class="main-container px-4">
+        <div class="controls-outer-container mb-8">
+            <div class="controls-grid">
+                <div class="controls-column">
+                    <div class="flex items-center justify-between">
+                         <div class="flex items-center gap-3">
+                            <input type="color" id="color-picker" class="w-8 h-8 rounded-full cursor-pointer">
+                            <input type="text" id="hex-input" class="p-0 border-none bg-transparent text-2xl font-medium uppercase w-32 focus:outline-none">
+                        </div>
+                        <div class="font-medium text-gray-700 color-model-select-wrapper">
+                             <select id="color-model-select" class="color-model-select">
+                                <option value="hsl">HSL</option>
+                                <option value="rgb">RGB</option>
+                            </select>
+                            <svg class="select-arrow w-4 h-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                        </div>
+                    </div>
+                    <div id="color-values-container" class="flex items-center justify-between gap-3 bg-gray-50 p-2 rounded-lg" style="box-shadow: var(--com-box-shadow);">
+                        <!-- RGB/HSL value inputs will be here -->
+                    </div>
+                    <div id="color-controls-container" class="space-y-4 pt-2"></div>
+                </div>
+
+                <div class="divider-line"></div>
+
+                <div class="controls-column justify-between">
+                     <div class="space-y-2">
+                        <label class="label">Naming Pattern</label>
+                        <div class="custom-select-wrapper">
+                            <select id="naming-pattern-select" class="custom-select">
+                                <option value="100-900">50, 100...</option>
+                                <option value="10-200">10, 20...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="label">Algorithm</label>
+                        <div class="custom-select-wrapper">
+                            <select id="algorithm-select" class="custom-select">
+                                <option>Tailwind CSS</option>
+                                <option>Material Design</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider-line"></div>
+
+                <div class="controls-column justify-between">
+                     <div class="space-y-2">
+                        <label class="label">Shade Count</label>
+                        <div class="flex items-center gap-4">
+                            <button id="shade-minus" class="shade-button w-14 h-14 rounded-full flex items-center justify-center text-2xl" style="background: var(--thumb-bg); box-shadow: var(--thumb-shadow);">-</button>
+                            <span id="shade-count-display" class="text-3xl font-medium w-12 text-center">11</span>
+                            <button id="shade-plus" class="shade-button w-14 h-14 rounded-full flex items-center justify-center text-2xl" style="background: var(--thumb-bg); box-shadow: var(--thumb-shadow);">+</button>
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="label">Contrast Shift</label>
+                        <span id="contrast-value-display" class="text-3xl font-medium">0.00</span>
+                        <input type="range" id="contrast-slider" min="-0.5" max="0.5" step="0.01" value="0" class="w-full">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-between items-center mb-6">
+            <input placeholder="Enter color name" id="color-name-input" class="p-0 border-none bg-transparent text-2xl font-medium focus:outline-none" value="Palette">
+            <div class="flex gap-3">
+                 <button id="copy-svg-figma" class="text-xs font-semibold py-1.5 px-3 rounded-lg flex items-center gap-1" style="background: var(--light-grad); box-shadow: var(--shadow-lg);">
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M20 10.875c0-.538-.001-.891-.02-1.163-.018-.263-.048-.376-.075-.44a1.25 1.25 0 0 0-.677-.677c-.064-.027-.177-.058-.44-.075-.272-.019-.625-.02-1.163-.02H11.1c-.646 0-1.071 0-1.396.027-.313.026-.445.07-.521.109-.236.12-.427.311-.547.547-.039.076-.083.207-.109.52-.026.325-.027.75-.027 1.397v6.525c0 .538.001.891.02 1.163.017.262.048.375.075.44l.052.112c.137.254.358.455.624.565l.146.041c.07.014.163.025.295.034.272.019.625.02 1.163.02s.891-.001 1.163-.02c.263-.018.376-.048.44-.075a1.25 1.25 0 0 0 .677-.677c.027-.064.058-.177.075-.44.019-.272.02-.625.02-1.163 0-.51 0-.943.023-1.299.025-.364.08-.72.224-1.07l.065-.146a3.25 3.25 0 0 1 1.695-1.613l.13-.05c.307-.107.62-.152.94-.174.355-.024.788-.023 1.298-.023.538 0 .891-.001 1.163-.02.263-.018.376-.048.44-.075a1.25 1.25 0 0 0 .677-.676c.027-.065.057-.178.075-.44.019-.273.02-.626.02-1.164m-4.75 6.75c0 .4-.001.753-.013 1.059a10.7 10.7 0 0 0 1.998-1.597 10.7 10.7 0 0 0 1.45-1.85c-.305.012-.659.013-1.06.013-.538 0-.891.001-1.163.02-.263.018-.376.048-.44.075a1.25 1.25 0 0 0-.677.676c-.027.065-.058.178-.075.44-.019.273-.02.626-.02 1.164m6.75-6.75c0 .51 0 .943-.023 1.299-.024.344-.076.68-.203 1.01a12.7 12.7 0 0 1-3.11 5.303 12.7 12.7 0 0 1-5.288 3.228l-.193.06c-.33.127-.666.178-1.01.202-.355.024-.788-.023-1.298.023s-.943 0-1.299-.023c-.364-.025-.72-.08-1.07-.224a3.25 3.25 0 0 1-1.758-1.758v-.002c-.145-.348-.2-.705-.225-1.07-.024-.355-.023-.788-.023-1.298v-.126c-.57 0-1.057 0-1.459-.033-.437-.036-.86-.114-1.266-.32a3.25 3.25 0 0 1-1.421-1.421c-.207-.405-.284-.83-.32-1.266C2 14.034 2 13.514 2 12.9V6.6c0-.614 0-1.135.034-1.56.036-.436.114-.86.32-1.265.311-.612.81-1.11 1.421-1.421.405-.207.83-.284 1.266-.32C5.466 2 5.986 2 6.6 2h6.3c.614 0 1.134 0 1.559.034.382.031.755.095 1.113.248l.154.072a3.25 3.25 0 0 1 1.42 1.421l.072.153c.153.358.217.73.248 1.113.033.402.034.889.034 1.459h.125c.51 0 .943 0 1.299.023.364.025.72.08 1.07.224l.146.065a3.25 3.25 0 0 1 1.613 1.695l.05.13c.107.308.152.62.174.94.024.355.023.788.023 1.298M4 12.9c0 .646 0 1.071.027 1.396.026.313.07.445.109.521.12.236.31.427.547.547.076.038.206.083.52.109.308.025.706.026 1.297.026v-4.4c0-.613 0-1.134.034-1.559.036-.436.113-.86.32-1.265l.125-.224c.313-.51.761-.925 1.296-1.197.405-.207.83-.284 1.266-.32.425-.035.945-.034 1.559-.034h4.4c0-.59-.002-.988-.027-1.296-.026-.313-.07-.445-.109-.521a1.25 1.25 0 0 0-.545-.546l-.07-.03a1.8 1.8 0 0 0-.452-.08C13.972 4.001 13.547 4 12.9 4H6.6c-.646 0-1.071 0-1.396.027-.313.026-.445.07-.521.109-.236.12-.427.311-.547.547-.039.076-.083.207-.109.52C4.001 5.528 4 5.953 4 6.6z"></path></svg>
+                    SVG/Figma
+                </button>
+            </div>
+        </div>
+
+        <main id="palette-container" class="flex flex-wrap justify-center gap-2.5 mb-8">
+            <!-- Color shades will be generated here -->
+        </main>
+
+        <div class="max-w-5xl mx-auto bg-white p-6 rounded-2xl shadow-lg mt-20">
+             <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+                <div id="export-format-tabs" class="flex items-center gap-1 bg-gray-200 p-1 rounded-lg">
+                    <button class="tab-btn active px-3 py-1 rounded-md text-sm font-medium" data-format="css">CSS</button>
+                </div>
+                 <div id="color-mode-tabs" class="flex items-center gap-1 bg-gray-200 p-1 rounded-lg">
+                    <button class="tab-btn active px-3 py-1 rounded-md text-sm font-medium" data-mode="hex">HEX</button>
+                    <button class="tab-btn px-3 py-1 rounded-md text-sm font-medium" data-mode="rgba">RGBA</button>
+                    <button class="tab-btn px-3 py-1 rounded-md text-sm font-medium" data-mode="hsl">HSL</button>
+                </div>
+            </div>
+            <div class="code-block group">
+                <pre class="p-4 text-sm overflow-x-auto"><code id="code-output" class="language-css"></code></pre>
+                <button id="copy-code-btn" class="absolute top-2 right-2 bg-gray-700 text-white px-3 py-1 rounded-md text-xs opacity-0 group-hover:opacity-100 transition-opacity">Copy</button>
+                 <div id="copy-code-feedback" class="copy-feedback">Copied!</div>
+            </div>
+        </div>
+    </div>
+    
+    <footer class="main-container px-4 mt-8 py-10 border-t border-gray-200">
+        <div class="flex justify-between items-center">
+            <span class="text-sm text-gray-500">© 2024 Revanth</span>
+             <a href="https://portfoliorevanth.framer.website/" target="_blank" class="text-sm font-medium text-gray-600 hover:text-gray-900">Portfolio</a>
+        </div>
+    </footer>
+
+
+    <script>
+        const colorPicker = document.getElementById('color-picker');
+        const hexInput = document.getElementById('hex-input');
+        const colorControlsContainer = document.getElementById('color-controls-container');
+        const colorValuesContainer = document.getElementById('color-values-container');
+        const colorModelSelect = document.getElementById('color-model-select');
+        const colorNameInput = document.getElementById('color-name-input');
+        const algorithmSelect = document.getElementById('algorithm-select');
+        const contrastSlider = document.getElementById('contrast-slider');
+        const contrastValueDisplay = document.getElementById('contrast-value-display');
+        const shadeCountDisplay = document.getElementById('shade-count-display');
+        const shadeMinusBtn = document.getElementById('shade-minus');
+        const shadePlusBtn = document.getElementById('shade-plus');
+        const namingPatternSelect = document.getElementById('naming-pattern-select');
+        const paletteContainer = document.getElementById('palette-container');
+        const exportFormatTabs = document.getElementById('export-format-tabs');
+        const colorModeTabs = document.getElementById('color-mode-tabs');
+        const codeOutput = document.getElementById('code-output');
+        const copyCodeBtn = document.getElementById('copy-code-btn');
+        const copyCodeFeedback = document.getElementById('copy-code-feedback');
+        const copySvgFigmaBtn = document.getElementById('copy-svg-figma');
+
+        let state = {
+            baseColor: '#3d3d29',
+            colorName: 'Palette',
+            algorithm: 'tailwind',
+            shadeCount: 11,
+            namingPattern: '100-900',
+            exportFormat: 'css',
+            colorMode: 'hex',
+            colorModel: 'hsl',
+            contrastShift: 0.0
+        };
+        let currentShades = [];
+        let color = { r: 61, g: 61, b: 41, h: 60, s: 20, l: 20 };
+
+        // --- Color Conversion & Generation Logic ---
+        function hexToRgb(hex) {
+            let r = 0, g = 0, b = 0;
+            hex = hex.replace(/^#/, '');
+            if (hex.length === 3) {
+                r = parseInt(hex[0] + hex[0], 16);
+                g = parseInt(hex[1] + hex[1], 16);
+                b = parseInt(hex[2] + hex[2], 16);
+            } else if (hex.length === 6) {
+                r = parseInt(hex.substring(0, 2), 16);
+                g = parseInt(hex.substring(2, 4), 16);
+                b = parseInt(hex.substring(4, 6), 16);
+            }
+            return { r, g, b };
+        }
+
+        function rgbToHex(r, g, b) {
+            r = Math.round(r); g = Math.round(g); b = Math.round(b);
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toLowerCase();
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h = 0, s = 0, l = (max + min) / 2;
+
+            if (max !== min) {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
+        }
+
+        function hslToRgb(h, s, l) {
+            s /= 100; l /= 100;
+            let c = (1 - Math.abs(2 * l - 1)) * s,
+                x = c * (1 - Math.abs((h / 60) % 2 - 1)),
+                m = l - c / 2,
+                r = 0, g = 0, b = 0;
+            if (0 <= h && h < 60) { r = c; g = x; b = 0; } 
+            else if (60 <= h && h < 120) { r = x; g = c; b = 0; } 
+            else if (120 <= h && h < 180) { r = 0; g = c; b = x; } 
+            else if (180 <= h && h < 240) { r = 0; g = x; b = c; } 
+            else if (240 <= h && h < 300) { r = x; g = 0; b = c; } 
+            else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
+            r = Math.round((r + m) * 255);
+            g = Math.round((g + m) * 255);
+            b = Math.round((b + m) * 255);
+            return { r, g, b };
+        }
+
+        function generateShades(baseH, baseS, baseL, count, contrast) {
+            const shades = [];
+            const midPoint = Math.floor(count / 2);
+
+            for (let i = 0; i < count; i++) {
+                const factor = (i - midPoint) / midPoint;
+                let l = baseL;
+                let s = baseS;
+
+                if (factor < 0) { // Tints
+                    l += (100 - baseL) * -factor * 0.9;
+                    s -= baseS * -factor * 0.2;
+                } else if (factor > 0) { // Shades
+                    l -= baseL * factor * 0.95;
+                    s += (100 - baseS) * factor * 0.05;
+                }
+                
+                l += (l - 50) * contrast;
+
+                l = Math.min(98, Math.max(2, l));
+                s = Math.min(100, Math.max(0, s));
+                
+                const {r, g, b} = hslToRgb(baseH, s, l);
+                shades.push({ name: '', hex: rgbToHex(r, g, b) });
+            }
+            return shades;
+        }
+
+        function applyNamingPattern(shades) {
+            const count = shades.length;
+            const midIndex = Math.floor(count / 2);
+            return shades.map((shade, i) => {
+                let name;
+                if (state.namingPattern === '100-900') {
+                    if (i === midIndex) name = 500;
+                    else if (i < midIndex) name = 500 - (midIndex - i) * 100;
+                    else name = 500 + (i - midIndex) * 100;
+                    if (name < 100) name = 50;
+                    name = Math.round(name / 50) * 50;
+                } else {
+                    if (i === midIndex) name = 50;
+                    else name = 50 + (i - midIndex) * 10;
+                }
+                return { ...shade, name: `${name}` };
+            });
+        }
+
+        function displayPalette(shades) {
+            paletteContainer.innerHTML = '';
+            const midIndex = Math.floor(shades.length / 2);
+            shades.forEach((shade, i) => {
+                const container = document.createElement('div');
+                container.className = 'relative w-[100px] h-[100px]';
+                const shadeBox = document.createElement('div');
+                shadeBox.classList.add('shade-box');
+                shadeBox.style.backgroundColor = shade.hex;
+                const { r, g, b } = hexToRgb(shade.hex);
+                const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                shadeBox.style.color = luminance > 0.5 ? 'black' : 'white';
+                if (i === midIndex) {
+                    const dot = document.createElement('div');
+                    dot.className = 'dot';
+                    shadeBox.appendChild(dot);
+                }
+                const nameText = document.createElement('span');
+                nameText.textContent = shade.name;
+                nameText.className = 'shade-name';
+                const hexText = document.createElement('span');
+                hexText.textContent = shade.hex.toUpperCase();
+                hexText.className = 'shade-value';
+                const copyFeedback = document.createElement('div');
+                copyFeedback.classList.add('copy-feedback');
+                copyFeedback.textContent = 'Copied!';
+                shadeBox.appendChild(nameText);
+                shadeBox.appendChild(hexText);
+                container.appendChild(shadeBox);
+                container.appendChild(copyFeedback);
+                container.addEventListener('click', () => copyToClipboard(shade.hex, copyFeedback));
+                paletteContainer.appendChild(container);
+            });
+        }
+
+        function displayExportCode() {
+            let code = '';
+            const colorName = state.colorName.toLowerCase().replace(/\s+/g, '-');
+            const toRgba = (hex) => { const {r,g,b} = hexToRgb(hex); return `rgba(${r}, ${g}, ${b}, 1)`; };
+            const toHsl = (hex) => { const {h,s,l} = rgbToHsl(hexToRgb(hex)); return `hsl(${h}, ${s}%, ${l}%)`; };
+            const getColorValue = (hex) => {
+                switch(state.colorMode) {
+                    case 'rgba': return toRgba(hex);
+                    case 'hsl': return toHsl(hex);
+                    default: return hex.toLowerCase();
+                }
+            };
+            switch (state.exportFormat) {
+                case 'css':
+                    code = `/* CSS Variables */\n:root {\n`;
+                    currentShades.forEach(shade => { code += `  --${colorName}-${shade.name}: ${getColorValue(shade.hex)};\n`; });
+                    code += `}`;
+                    break;
+                case 'tailwind':
+                    code = `// tailwind.config.js\nmodule.exports = {\n  theme: {\n    extend: {\n      colors: {\n        '${colorName}': {\n`;
+                    currentShades.forEach(shade => { code += `          '${shade.name}': '${getColorValue(shade.hex)}',\n`; });
+                    code += `        }\n      }\n    }\n  }\n}`;
+                    break;
+                case 'tokens':
+                     const tokens = { [colorName]: currentShades.reduce((acc, shade) => {
+                            acc[shade.name] = { value: getColorValue(shade.hex), type: "color" };
+                            return acc;
+                        }, {}) };
+                    code = JSON.stringify({color: tokens}, null, 2);
+                    break;
+            }
+            codeOutput.textContent = code;
+        }
+
+        function createColorControls() {
+            colorControlsContainer.innerHTML = '';
+            colorValuesContainer.innerHTML = '';
+            const model = state.colorModel;
+            const channels = model === 'rgb' ? ['r', 'g', 'b'] : ['h', 's', 'l'];
+            const maxValues = model === 'rgb' ? [255, 255, 255] : [360, 100, 100];
+
+            channels.forEach((channel, i) => {
+                // Sliders
+                const sliderContainer = document.createElement('div');
+                sliderContainer.className = 'grid grid-cols-[auto,1fr] items-center gap-3';
+                const sliderLabel = document.createElement('span');
+                sliderLabel.className = 'w-4 font-mono text-sm text-gray-500';
+                sliderLabel.textContent = channel.toUpperCase();
+                const slider = document.createElement('input');
+                slider.type = 'range';
+                slider.id = `${channel}-slider`;
+                slider.min = 0;
+                slider.max = maxValues[i];
+                sliderContainer.append(sliderLabel, slider);
+                colorControlsContainer.appendChild(sliderContainer);
+
+                // Value Inputs
+                const valueContainer = document.createElement('div');
+                valueContainer.className = 'flex items-center gap-2';
+                const valueLabel = document.createElement('span');
+                valueLabel.className = 'text-sm text-gray-500';
+                valueLabel.textContent = channel.toUpperCase();
+                const numberInput = document.createElement('input');
+                numberInput.type = 'text';
+                numberInput.id = `${channel}-input`;
+                numberInput.className = 'w-16 p-1 text-center border-none bg-transparent font-medium';
+                valueContainer.append(valueLabel, numberInput);
+                colorValuesContainer.appendChild(valueContainer);
+                if (i < channels.length - 1) {
+                    const line = document.createElement('div');
+                    line.className = 'w-px h-6 bg-gray-200';
+                    colorValuesContainer.appendChild(line);
+                }
+            });
+            setupSliderEventListeners();
+        }
+        
+        function updateColorControlsUI() {
+            if (state.colorModel === 'rgb') {
+                ['r', 'g', 'b'].forEach(channel => {
+                    document.getElementById(`${channel}-input`).value = color[channel];
+                    const slider = document.getElementById(`${channel}-slider`);
+                    slider.value = color[channel];
+                    let gradient;
+                    if(channel === 'r') gradient = `linear-gradient(to right, rgb(0, ${color.g}, ${color.b}), rgb(255, ${color.g}, ${color.b}))`;
+                    else if (channel === 'g') gradient = `linear-gradient(to right, rgb(${color.r}, 0, ${color.b}), rgb(${color.r}, 255, ${color.b}))`;
+                    else gradient = `linear-gradient(to right, rgb(${color.r}, ${color.g}, 0), rgb(${color.r}, ${color.g}, 255))`;
+                    slider.style.background = gradient;
+                });
+            } else { // hsl
+                ['h', 's', 'l'].forEach(channel => {
+                    document.getElementById(`${channel}-input`).value = color[channel];
+                    const slider = document.getElementById(`${channel}-slider`);
+                    slider.value = color[channel];
+                    let gradient;
+                    if(channel === 'h') gradient = `linear-gradient(to right, hsl(0, ${color.s}%, ${color.l}%), hsl(60, ${color.s}%, ${color.l}%), hsl(120, ${color.s}%, ${color.l}%), hsl(180, ${color.s}%, ${color.l}%), hsl(240, ${color.s}%, ${color.l}%), hsl(300, ${color.s}%, ${color.l}%), hsl(360, ${color.s}%, ${color.l}%))`;
+                    else if (channel === 's') gradient = `linear-gradient(to right, hsl(${color.h}, 0%, ${color.l}%), hsl(${color.h}, 100%, ${color.l}%))`;
+                    else gradient = `linear-gradient(to right, hsl(${color.h}, ${color.s}%, 0%), hsl(${color.h}, ${color.s}%, 50%), hsl(${color.h}, ${color.s}%, 100%))`;
+                    slider.style.background = gradient;
+                });
+            }
+        }
+
+        function update() {
+            updateColorControlsUI();
+            let shades = generateShades(color.h, color.s, color.l, state.shadeCount, state.contrastShift);
+            currentShades = applyNamingPattern(shades);
+            displayPalette(currentShades);
+            displayExportCode();
+        }
+        
+        function updateColorFromHex(hex) {
+            state.baseColor = hex;
+            const {r, g, b} = hexToRgb(hex);
+            color.r = r; color.g = g; color.b = b;
+            const {h, s, l} = rgbToHsl(r, g, b);
+            color.h = h; color.s = s; color.l = l;
+            hexInput.value = hex.toUpperCase();
+            colorPicker.value = hex;
+            update();
+        }
+
+        function setupSliderEventListeners() {
+            const channels = state.colorModel === 'rgb' ? ['r', 'g', 'b'] : ['h', 's', 'l'];
+            channels.forEach(channel => {
+                const slider = document.getElementById(`${channel}-slider`);
+                const numberInput = document.getElementById(`${channel}-input`);
+                
+                const handleChange = () => {
+                    if (state.colorModel === 'rgb') {
+                        color.r = parseInt(document.getElementById('r-input').value, 10);
+                        color.g = parseInt(document.getElementById('g-input').value, 10);
+                        color.b = parseInt(document.getElementById('b-input').value, 10);
+                        updateColorFromHex(rgbToHex(color.r, color.g, color.b));
+                    } else {
+                        color.h = parseInt(document.getElementById('h-input').value, 10);
+                        color.s = parseInt(document.getElementById('s-input').value, 10);
+                        color.l = parseInt(document.getElementById('l-input').value, 10);
+                        const {r,g,b} = hslToRgb(color.h, color.s, color.l);
+                        updateColorFromHex(rgbToHex(r,g,b));
+                    }
+                };
+                
+                slider.addEventListener('input', () => {
+                    numberInput.value = slider.value;
+                    handleChange();
+                });
+                numberInput.addEventListener('change', () => {
+                    let val = parseInt(numberInput.value, 10);
+                    const max = parseInt(slider.max, 10);
+                    if (isNaN(val)) val = 0;
+                    if (val < 0) val = 0;
+                    if (val > max) val = max;
+                    numberInput.value = val;
+                    slider.value = val;
+                    handleChange();
+                });
+            });
+        }
+
+        function setupEventListeners() {
+            colorPicker.addEventListener('input', () => updateColorFromHex(colorPicker.value));
+            hexInput.addEventListener('change', () => {
+                if (/^#([0-9A-F]{3}){1,2}$/i.test(hexInput.value)) {
+                    updateColorFromHex(hexInput.value);
+                } else {
+                    hexInput.value = state.baseColor.toUpperCase();
+                }
+            });
+            colorModelSelect.addEventListener('change', (e) => {
+                state.colorModel = e.target.value;
+                createColorControls();
+                update();
+            });
+            colorNameInput.addEventListener('input', () => {
+                state.colorName = colorNameInput.value || 'color';
+                displayExportCode();
+            });
+            algorithmSelect.addEventListener('change', () => {
+                state.algorithm = algorithmSelect.value;
+                update();
+            });
+            contrastSlider.addEventListener('input', () => {
+                state.contrastShift = parseFloat(contrastSlider.value);
+                contrastValueDisplay.textContent = state.contrastShift.toFixed(2);
+                update();
+            });
+            const handleShadeChange = (increment) => {
+                let count = state.shadeCount + increment;
+                if (count < 3) count = 3; if (count > 21) count = 21;
+                if (count % 2 === 0) count += (increment > 0 ? 1 : -1);
+                if (count < 3) count = 3;
+                state.shadeCount = count;
+                shadeCountDisplay.textContent = count;
+                update();
+            }
+            shadeMinusBtn.addEventListener('click', () => handleShadeChange(-2));
+            shadePlusBtn.addEventListener('click', () => handleShadeChange(2));
+            namingPatternSelect.addEventListener('change', () => {
+                state.namingPattern = namingPatternSelect.value;
+                update();
+            });
+            const setupTabs = (container, stateKey, callback) => {
+                 container.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        state[stateKey] = e.target.dataset[stateKey === 'exportFormat' ? 'format' : 'mode'];
+                        container.querySelector('.active').classList.remove('active', 'bg-blue-600', 'text-white');
+                        e.target.classList.add('active', 'bg-blue-600', 'text-white');
+                        callback();
+                    }
+                });
+            }
+            setupTabs(exportFormatTabs, 'exportFormat', displayExportCode);
+            setupTabs(colorModeTabs, 'colorMode', displayExportCode);
+            copyCodeBtn.addEventListener('click', () => copyToClipboard(codeOutput.textContent, copyCodeFeedback));
+            copySvgFigmaBtn.addEventListener('click', () => {
+                const boxSize = 80;
+                const svg = `<svg width="${currentShades.length * boxSize}" height="${boxSize}" xmlns="http://www.w3.org/2000/svg">` +
+                    currentShades.map((shade, i) => {
+                        const { r, g, b } = hexToRgb(shade.hex);
+                        const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+                        const textColor = luminance > 0.5 ? '#000000' : '#FFFFFF';
+
+                        return `<g>
+                                    <rect x="${i * boxSize}" y="0" width="${boxSize}" height="${boxSize}" fill="${shade.hex}" />
+                                    <text x="${i * boxSize + boxSize / 2}" y="36" text-anchor="middle" fill="${textColor}" font-family="sans-serif" font-size="14" font-weight="bold">
+                                        ${shade.name}
+                                    </text>
+                                    <text x="${i * boxSize + boxSize / 2}" y="54" text-anchor="middle" fill="${textColor}" font-family="monospace" font-size="10">
+                                        ${shade.hex.toUpperCase()}
+                                    </text>
+                                </g>`;
+                    }).join('') + `</svg>`;
+                copyToClipboard(svg, copyCodeFeedback);
+            });
+        }
+        
+        function copyToClipboard(text, feedbackElement) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                if (feedbackElement) {
+                    feedbackElement.style.opacity = '1';
+                    setTimeout(() => { feedbackElement.style.opacity = '0'; }, 1500);
+                }
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+            }
+            document.body.removeChild(textArea);
+        }
+
+        createColorControls();
+        setupEventListeners();
+        updateColorFromHex(state.baseColor);
+    </script>
+</body>
+</html>
